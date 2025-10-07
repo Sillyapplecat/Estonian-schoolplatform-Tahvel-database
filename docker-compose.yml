@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-examplepass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tahvel}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro
+      - ./data/csv:/data/csv
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_PASSWORD:-examplepass}
+    ports:
+      - "8080:80"
+    depends_on:
+      - mariadb
+
+  bun:
+    image: oven/bun:latest
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./data/csv:/data/csv
+    env_file:
+      - .env
+    command: ["bun", "run", "seed.ts"]
+    depends_on:
+      - mariadb
+
+volumes:
+  db-data:
